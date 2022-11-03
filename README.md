@@ -6,6 +6,13 @@ use [OI-dataset][OIDB] to solve OI level problem with CNN
 
 comments and ideas locate [here](comments.md)
 
+standard process
+1. word segment
+2. word2vec
+3. train
+   1. RNN/LSTM(model)
+4. test
+
 ## progress
 
 - MNIST
