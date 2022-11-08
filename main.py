@@ -1,14 +1,10 @@
 from loader import get_loader
 from task import LevelTask
 
-def main():
+def main(epoch:int):
     task = LevelTask()
-    task.train()
-    task.test()
+    task.train(epoch, get_loader())
+    task.test(get_loader(train=False))
 
 if __name__=="__main__":
-    # main()
-    for idx,(label, text) in enumerate(get_loader()):
-        print(label)
-        print(text)
-        break
+    main()
