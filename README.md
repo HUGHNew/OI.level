@@ -6,6 +6,9 @@ use [OI-dataset][OIDB] to solve OI level problem with CNN
 
 comments and ideas locate [here](comments.md)
 
+> [fasttext][fastext] 快速通道  
+> valid: 0.93 level-known(not -1): 0.63
+
 standard process
 1. word segment
 2. word2vec
@@ -36,3 +39,4 @@ standard process
 
 [obmb]: https://www.bilibili.com/video/BV1UG411p7zv
 [BN]: https://www.bilibili.com/video/BV1WG411G7mr
+[fastext]: https://fasttext.cc/

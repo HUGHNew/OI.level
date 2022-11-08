@@ -3,7 +3,6 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from preprocessor import process
 
-from utils import file_exists
 
 class LevelTask:
     def __init__(self, model: Module, optim: Optimizer, loader: DataLoader):

@@ -10,5 +10,14 @@ model_*
 */models*
 */*/models*
 */.ipynb_check*
-tmp.md
+__pycache__
+
+tmp
+tmp.*
+
+# dataset
 OI-dataset/assem*.txt
+OI-dataset/fast*.txt
+
+# models
+models

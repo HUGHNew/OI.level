@@ -1,9 +1,12 @@
 from __future__ import annotations
+from typing import Callable
 from utils import file_exists
 import os
 
 
-def assemble_data(text_dict: dict[str, str], cols: list[int], assm: str = "assem.txt", datasetpath: str = "OI-dataset"):
+def assemble_data(text_dict: dict[str, str], cols: list[int],
+                  assm: str = "assem.txt", datasetpath: str = "OI-dataset",
+                  *, combine: Callable[[str, str], str] = lambda l, t: l + "" + t):
     """storage data in format: col,col,..,col text
 
     Args:
@@ -28,11 +31,16 @@ def assemble_data(text_dict: dict[str, str], cols: list[int], assm: str = "assem
                 if len(texts) != len(labels):
                     raise "text len NOT equals label len"
                 for i in range(len(texts)):
-                    assembles.append(
+                    assembles.append(combine(
                         ",".join(
-                            [val for idx, val in enumerate(
-                                labels[i].split(' ')) if idx in cols]
-                        )+" "+texts[i]
+                            [
+                                val 
+                                for idx, val in enumerate(labels[i].split(' ')) 
+                                if idx in cols
+                            ]
+                        ),
+                        texts[i]
+                    )
                     )
     if not os.path.exists(datasetpath):
         os.mkdir(datasetpath)
@@ -41,10 +49,22 @@ def assemble_data(text_dict: dict[str, str], cols: list[int], assm: str = "assem
             save.writelines(assembles)
 
 
-def process(prefix:str = "OI-dataset", cols:list[int] = [-3], *, force:bool = False):
-    if file_exists(f"{prefix}/assem.txt") and not force: return
+def process(prefix: str = "OI-dataset", cols: list[int] = [-3], *, force: bool = False):
+    if file_exists(f"{prefix}/assem.txt") and not force:
+        return
     tls = {}
     def file(x): return f"{prefix}/{x}.txt"
     for f in ["test", "train", "valid"]:
         tls[file(f)] = file(f+"_label")
     assemble_data(tls, cols)
+
+import jieba
+def process_fasttext(prefix: str = "OI-dataset", cols: list[int] = [-3], *, force: bool = False):
+    def file(x): return f"{prefix}/{x}.txt"
+    if file_exists(file("fast")) and not force:
+        return
+    tls = {}
+    for f in ["test", "train", "valid"]:
+        tls[file(f)] = file(f+"_label")
+    assemble_data(tls, cols, assm="fast.txt", combine=lambda l,
+                  t: "__label__"+l[0]+"\t"+" ".join(jieba.lcut(t)))
