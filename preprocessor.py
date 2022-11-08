@@ -2,10 +2,10 @@ from __future__ import annotations
 from typing import Callable
 from utils import file_exists
 import os
-
+from config import dataset_path, assem_file, file_assm_relat, fast_assem
 
 def assemble_data(text_dict: dict[str, str], cols: list[int],
-                  assm: str = "assem.txt", datasetpath: str = "OI-dataset",
+                  assm: str = assem_file, datasetpath: str = dataset_path,
                   *, combine: Callable[[str, str], str] = lambda l, t: l + "" + t):
     """storage data in format: col,col,..,col text
 
@@ -49,8 +49,8 @@ def assemble_data(text_dict: dict[str, str], cols: list[int],
             save.writelines(assembles)
 
 
-def process(prefix: str = "OI-dataset", cols: list[int] = [-3], *, force: bool = False):
-    if file_exists(f"{prefix}/assem.txt") and not force:
+def process(prefix: str = dataset_path, cols: list[int] = [-3], *, force: bool = False):
+    if file_exists(file_assm_relat) and not force:
         return
     tls = {}
     def file(x): return f"{prefix}/{x}.txt"
@@ -59,12 +59,12 @@ def process(prefix: str = "OI-dataset", cols: list[int] = [-3], *, force: bool =
     assemble_data(tls, cols)
 
 import jieba
-def process_fasttext(prefix: str = "OI-dataset", cols: list[int] = [-3], *, force: bool = False):
+def process_fasttext(prefix: str = dataset_path, cols: list[int] = [-3], *, force: bool = False):
     def file(x): return f"{prefix}/{x}.txt"
     if file_exists(file("fast")) and not force:
         return
     tls = {}
     for f in ["test", "train", "valid"]:
         tls[file(f)] = file(f+"_label")
-    assemble_data(tls, cols, assm="fast.txt", combine=lambda l,
+    assemble_data(tls, cols, assm=fast_assem, combine=lambda l,
                   t: "__label__"+l[0]+"\t"+" ".join(jieba.lcut(t)))

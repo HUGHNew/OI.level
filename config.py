@@ -5,6 +5,7 @@ fast_assem = "fast.txt"
 assem_file = "assem.txt"
 
 file_fast_relat = os.path.join(dataset_path, fast_assem)
+file_assm_relat = os.path.join(dataset_path, assem_file)
 #endregion dataset
 
 #region models
