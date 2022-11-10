@@ -6,7 +6,7 @@ from config import dataset_path, assem_file, file_assm_relat, fast_assem
 
 def assemble_data(text_dict: dict[str, str], cols: list[int],
                   assm: str = assem_file, datasetpath: str = dataset_path,
-                  *, combine: Callable[[str, str], str] = lambda l, t: l + "" + t):
+                  *, combine: Callable[[str, str], str] = lambda l, t: l + " " + t):
     """storage data in format: col,col,..,col text
 
     Args:
@@ -34,7 +34,7 @@ def assemble_data(text_dict: dict[str, str], cols: list[int],
                     assembles.append(combine(
                         ",".join(
                             [
-                                val 
+                                str(max(int(val), 0))
                                 for idx, val in enumerate(labels[i].split(' ')) 
                                 if idx in cols
                             ]

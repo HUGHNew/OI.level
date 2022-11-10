@@ -30,3 +30,17 @@ cs224n 最后选择 2021winter B站翻译质量好一些 同时从 TensorFlow �
 同时选择书籍 《自然语言处理入门》
 
 以任务为驱动 尽快完成一个给定的任务(预计5个工作日)
+
+## 11.08
+
+data process
+1. (:label text)
+2. cut(jieba.cut)
+3. embedding(before torch.nn.Embedding)
+   1. one-hot
+   2. BoW(TF)
+   3. [batch_size, len = maxInTrainData, dim = sqrt(vocab_size)]
+4. model
+   1. LSTM
+   2. fc
+   3. softmax

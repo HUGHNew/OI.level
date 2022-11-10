@@ -1,14 +1,13 @@
+from __future__ import annotations
 from torch.utils.data import DataLoader
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 import torch
-from preprocessor import process
-from __future__ import annotations
-from config import dict_model_file, dict_optim_file, device
-from utils import file_exists
 import torch.nn.functional as F
 import numpy as np
-
+from preprocessor import process
+from config import dict_model_file, dict_optim_file, device
+from utils import file_exists, apply
 
 class LevelTask:
     def __init__(self, model: Module, optim: Optimizer,
@@ -20,28 +19,31 @@ class LevelTask:
         self._optim = optim
         self._optim_file = optim_save
         self.__load_params(self._optim, optim_save)
-        self._model.to(device)
+        # self._optim.to(device)
+        self.criterion = torch.nn.CrossEntropyLoss()
 
         process()
 
     def __load_params(self, params, file):
         if file_exists(file):
             params.load_state_dict(torch.load(file))
-        params.to()
+        # params.to(device)
 
     def train(self, epoch: int > 0, loader: DataLoader):
         for epc in range(epoch):
             for idx, (target, input) in enumerate(loader): # -1, text
-                input.to(device)
-                target.to(device)
+                input = input.to(device)
+                target = target.to(device)
                 self._optim.zero_grad()
                 output = self._model(input)
+                # loss = self.criterion(output, target)
                 loss = F.nll_loss(output, target)
+                # print(loss, loss.shape)
                 loss.backward()
                 self._optim.step()
-                if (idx & 128) == 0:
+                if (idx % 128) == 0:
                     print(f"epoch:{epc}, idx:{idx}, loss:{loss.item()}")
-                if (idx & 1024) == 0:
+                if (idx % 1024) == 0:
                     torch.save(self._model.state_dict(), self._model_file)
                     torch.save(self._optim.state_dict(), self._optim_file)
             torch.save(self._model.state_dict(), self._model_file)

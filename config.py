@@ -21,5 +21,5 @@ dict_optim_file = os.path.join(model_path, "asm_optim.pt")
 model_fast_relat = os.path.join(model_path, fast_model)
 model_assm_relat = os.path.join(model_path, assem_model)
 #endregion models
-
+vocab_file = "vocab.pkl"
 device = "cuda" if torch.cuda.is_available() else "cpu"

@@ -1,4 +1,6 @@
+from __future__ import annotations
 import os
+import torch
 
 def dist_summary():
     """show data distribution
@@ -32,3 +34,12 @@ def apply(_l: list, f, isMutable:bool = True):
     for idx in range(len(_l)):
         if isMutable: f(_l[idx])
         else: _l[idx] = f(_l[idx])
+
+def num2onehot(num:int, len:int)->torch.LongTensor:
+    x = torch.zeros(len, dtype=torch.long)
+    x[num] = 1
+    return x
+
+def init_label_list(num_embedding)->list[torch.LongTensor]:
+    embed = torch.nn.Embedding(num_embedding, 50)
+    return [embed(num2onehot(i, 11)) for i in range(11)]
