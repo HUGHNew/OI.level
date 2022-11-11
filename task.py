@@ -52,8 +52,12 @@ class LevelTask:
     def test(self, loader: DataLoader):
         losses = []
         accs = []
-        for idx, (input, target) in enumerate(loader):
+        for idx, (target, input) in enumerate(loader):
             with torch.no_grad():
+                if input.shape != torch.Size([4, 193, 50]):
+                    print("test", idx, input.shape)
+                input = input.to(device)
+                target = target.to(device)
                 output = self._model(input)
                 loss = F.nll_loss(output, target)
                 losses.append(loss)
@@ -61,4 +65,6 @@ class LevelTask:
                 pred = output.max(dim=-1)[-1]
                 acc = pred.eq(target).float().mean()
                 accs.append(acc)
-            print(f"acc:{np.mean(accs)}, loss:{np.mean(loss)}")
+        acc = torch.mean(torch.tensor(accs)).to("cpu").item()
+        loss = torch.mean(torch.tensor(losses)).to("cpu").item()
+        print(f"acc:{acc}, loss:{loss}")
