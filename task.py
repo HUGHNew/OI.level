@@ -6,8 +6,9 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from preprocessor import process
-from config import dict_model_file, dict_optim_file, device
+from config import dict_model_file, dict_optim_file, device, model_path
 from utils import file_exists, apply
+import os
 
 class LevelTask:
     def __init__(self, model: Module, optim: Optimizer,
@@ -43,9 +44,8 @@ class LevelTask:
                 self._optim.step()
                 if (idx % 128) == 0:
                     print(f"epoch:{epc}, idx:{idx}, loss:{loss.item()}")
-                if (idx % 1024) == 0:
-                    torch.save(self._model.state_dict(), self._model_file)
-                    torch.save(self._optim.state_dict(), self._optim_file)
+            if not os.path.exists(model_path):
+                os.mkdir(model_path)
             torch.save(self._model.state_dict(), self._model_file)
             torch.save(self._optim.state_dict(), self._optim_file)
 

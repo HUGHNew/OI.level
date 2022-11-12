@@ -23,7 +23,7 @@ class TaskNet(Module):
             print("unexpected shape:",input.shape, input)
         output, (h,c) = self.lstm(input)
         # [batch_size, max_len, dim_len]
-        output = output[:,-1,:]
-        x = self.fc0(F.relu(output))
+        # output = output[:,-1,:]
+        x = self.fc0(F.relu(output[:,-1,:].clone().detach()))
         # return F.softmax(x, dim=-1)
         return F.log_softmax(x , dim=-1)
