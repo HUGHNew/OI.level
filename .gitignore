@@ -22,3 +22,6 @@ OI-dataset/fast*.txt
 # models
 models
 *.pkl
+
+# tensorboard
+runs

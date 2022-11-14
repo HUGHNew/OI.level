@@ -15,13 +15,14 @@ test_file = "assem_test.txt"
 
 class TaskDataset(Dataset):
     def __init__(self, dataPath: str = dataset_path, dataFile: str = assem_file, *,
-                 train: bool = True, embed: bool = False, trainRate: float = 0.8, repartition: bool = False):
+                 train: bool = True, embed: bool = False, trainRate: float = 0.8,
+                 repartition: bool = False, betterPart: bool = False):
         self.data: list[tuple[int, str | torch.LongTensor]] = []
         self.embedding = embed
         self.isTrain = train
         self.path = dataPath
         self.rawdata = os.path.join(self.path, dataFile)
-        self._load_data(repartition, trainRate)
+        self._load_data(repartition, trainRate, betterPart)
         if self.embedding:
             def convert(x): return (x[0], sen2vec(x[1], useOneHot=True))
             for idx,val in enumerate(self.data):
@@ -31,16 +32,16 @@ class TaskDataset(Dataset):
                 self.data[idx] = result
             # apply(self.data, lambda x: (x[0], sen2vec(x[1], useOneHot=True)), False)
 
-    def _load_data(self, repart: bool, rate: float):
+    def _load_data(self, repart: bool, rate: float, betterPart: bool = False):
         if repart:
             if file_exists(self.rawdata):
                 self.data = self.__read_from_file(self.rawdata)
-            self.data = self.__partition(rate)
+            self.data = self.__partition(rate, betterPart)
         else:
             file = os.path.join(
                 self.path, train_file if self.isTrain else test_file)
             if not file_exists(file):
-                self._load_data(True, rate)
+                self._load_data(True, rate, betterPart)
             else:
                 self.data = self.__read_from_file(file)
 
@@ -53,8 +54,27 @@ class TaskDataset(Dataset):
             result = [l2t(s.strip().split(' ', 2))
                       for s in fd.readlines() if s != "\n"]  # skip blank line
         return result
+    #region partition
+    def __part_base(self, rate: float) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+        shuffle(self.data)
+        edge: int = int(len(self.data) * rate)
+        return self.data[:edge], self.data[edge:]
 
-    def __partition(self, rate: float) -> list[tuple[int, str]]:
+    def __part_better(self, rate: float) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+        """keep the number unclassified equals others"""
+        label_data:list[list[tuple[int, str]]] = [[] for _ in range(11)]
+        other_count = 0
+        for idx, text in self.data:
+            label_data[idx].append((idx, text))
+            if idx != 0: other_count += 1
+        label_data[0] = label_data[0][:other_count]
+        tr, ts = [], []
+        for labels in label_data:
+            tr.extend(labels[:int(len(labels)*rate)])
+            ts.extend(labels[int(len(labels)*rate):])
+        return tr, ts
+
+    def __partition(self, rate: float, better: bool = False) -> list[tuple[int, str]]:
         """split data to train and test
 
         Args:
@@ -63,12 +83,11 @@ class TaskDataset(Dataset):
         Returns:
             list[tuple[int, str]]: return the in need part
         """
-        shuffle(self.data)
-        edge: int = int(len(self.data) * rate)
-        tr, ts = self.data[:edge], self.data[edge:]
+        tr, ts = self.__part_better(rate) if better else self.__part_base(rate)
         self.__write_or_cancel(os.path.join(self.path, train_file), tr)
         self.__write_or_cancel(os.path.join(self.path, test_file), ts)
         return tr if self.isTrain else ts
+    #endregion partition
 
     def __write_or_cancel(self, file: str, data: list[tuple[int, str]]):
         try:
@@ -88,5 +107,5 @@ class TaskDataset(Dataset):
         return len(self.data)
 
 
-def get_loader(batch: int = 4, train: bool = True, embed: bool = False) -> DataLoader:
-    return DataLoader(TaskDataset(train=train, embed=embed), batch_size=batch, shuffle=True)
+def get_loader(batch: int = 4, train: bool = True, embed: bool = False, partBetter: bool = False) -> DataLoader:
+    return DataLoader(TaskDataset(train=train, embed=embed, betterPart=partBetter), batch_size=batch, shuffle=True, drop_last=True)

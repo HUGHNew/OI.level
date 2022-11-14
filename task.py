@@ -1,10 +1,10 @@
 from __future__ import annotations
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn.functional as F
-import numpy as np
 from preprocessor import process
 from config import dict_model_file, dict_optim_file, device, model_path
 from utils import file_exists, apply
@@ -22,6 +22,8 @@ class LevelTask:
         self.__load_params(self._optim, optim_save)
         # self._optim.to(device)
         self.criterion = torch.nn.CrossEntropyLoss()
+        self.loss = [] # average loss of each epoch
+        self.writer = SummaryWriter()
 
         process()
 
@@ -30,7 +32,10 @@ class LevelTask:
             params.load_state_dict(torch.load(file))
         # params.to(device)
 
-    def train(self, epoch: int > 0, loader: DataLoader):
+    def train(self, epoch: int > 0, loader: DataLoader, testLoader: DataLoader = None, label:str = "anomy"):
+        sum_loss = 0
+        count = len(loader) * loader.batch_size
+        acc = 0
         for epc in range(epoch):
             for idx, (target, input) in enumerate(loader): # -1, text
                 input = input.to(device)
@@ -39,23 +44,44 @@ class LevelTask:
                 output = self._model(input)
                 # loss = self.criterion(output, target)
                 loss = F.nll_loss(output, target)
-                # print(loss, loss.shape)
                 loss.backward()
                 self._optim.step()
-                if (idx % 128) == 0:
-                    print(f"epoch:{epc}, idx:{idx}, loss:{loss.item()}")
-            if not os.path.exists(model_path):
-                os.mkdir(model_path)
-            torch.save(self._model.state_dict(), self._model_file)
-            torch.save(self._optim.state_dict(), self._optim_file)
+                sum_loss += loss.item()
+                acc += output.max(dim=-1)[-1].eq(target).int().sum().item()
+                # if (idx % 128) == 0:
+                #     print(f"epoch:{epc}, idx:{idx}, loss:{loss.item()}")
+            if (epc % 16) == 0:
+                if not os.path.exists(model_path):
+                    os.mkdir(model_path)
+                torch.save(self._model.state_dict(), self._model_file)
+                torch.save(self._optim.state_dict(), self._optim_file)
+                if testLoader != None: # test acc
+                    ac, loss = self.test(testLoader, False)
+                    self.writer.add_scalar(f"test/acc{label}", ac, epc)
+                    self._model.train()
+            # summary graph
+            self.writer.add_scalar(f"train/loss{label}", sum_loss, epc)
+            self.writer.add_scalar(f"train/acc{label}", acc/count, epc)
+            print(epc, sum_loss, acc/count)
+            sum_loss = 0
+            acc = 0
+        self.writer.close()
 
-    def test(self, loader: DataLoader):
+
+    def test(self, loader: DataLoader, verbose: bool = True) -> tuple[float, float]:
+        """
+        Args:
+            loader (DataLoader): test dataloader
+            verbose (bool, optional): print acc loss. Defaults to True.
+
+        Returns:
+            tuple[float, float]: (acc, loss)
+        """
         losses = []
         accs = []
+        self._model.eval()
         for idx, (target, input) in enumerate(loader):
             with torch.no_grad():
-                if input.shape != torch.Size([4, 193, 50]):
-                    print("test", idx, input.shape)
                 input = input.to(device)
                 target = target.to(device)
                 output = self._model(input)
@@ -66,5 +92,9 @@ class LevelTask:
                 acc = pred.eq(target).float().mean()
                 accs.append(acc)
         acc = torch.mean(torch.tensor(accs)).to("cpu").item()
-        loss = torch.mean(torch.tensor(losses)).to("cpu").item()
-        print(f"acc:{acc}, loss:{loss}")
+        loss = torch.sum(torch.tensor(losses)).to("cpu").item()
+        # torch.save(self._model, "models/debug_model.pt")
+        # torch.save(self._optim, "models/debug_optim.pt")
+        if verbose:
+            print(f"acc:{acc}, sum_loss:{loss}")
+        return acc, loss
