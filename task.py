@@ -6,27 +6,28 @@ from torch.optim.optimizer import Optimizer
 import torch
 import torch.nn.functional as F
 from preprocessor import process
-from config import dict_model_file, dict_optim_file, device, model_path
+from config import device, model_path
 from utils import file_exists, apply
 import os
 
 class LevelTask:
-    def __init__(self, model: Module, optim: Optimizer,
-                 model_save: str = dict_model_file, optim_save: str = dict_optim_file):
+    def __init__(self, model: Module, optim: Optimizer, label:str = ".",
+                 model_save: str = "model.pt", optim_save: str = "optim.pt"):
+        self.save_path = os.path.join(model_path, label)
         self._model = model
-        self._model_file = model_save
+        self._model_file = os.path.join(self.save_path, model_save)
         self._model.to(device)
         self._optim = optim
-        self._optim_file = optim_save
+        self._optim_file = os.path.join(self.save_path, optim_save)
         # self._optim.to(device)
-        self.load()
+        self.label = label
         self.criterion = torch.nn.CrossEntropyLoss()
         self.loss = [] # average loss of each epoch
         self.writer = SummaryWriter()
 
         process() # preprocess
 
-    def train(self, epoch: int > 0, loader: DataLoader, testLoader: DataLoader = None, label:str = "anomy", enableTest = True):
+    def train(self, epoch: int > 0, loader: DataLoader, testLoader: DataLoader = None):
         sum_loss = 0
         count = len(loader) * loader.batch_size
         acc = 0
@@ -41,21 +42,17 @@ class LevelTask:
                 loss.backward()
                 self._optim.step()
                 sum_loss += loss.item()
-                acc += output.max(dim=-1)[-1].eq(target).int().sum().item()
-                # if (idx % 128) == 0:
-                #     print(f"epoch:{epc}, idx:{idx}, loss:{loss.item()}")
-            if (epc % 16) == 0 and enableTest:
-                if not os.path.exists(model_path):
-                    os.mkdir(model_path)
-                torch.save(self._model.state_dict(), self._model_file)
-                torch.save(self._optim.state_dict(), self._optim_file)
-                if testLoader != None: # test acc
+                true_list = output.max(dim=-1)[-1].eq(target).int()
+                acc += true_list.sum().item()
+            if (epc % 16) == 0:
+                self.save()
+                if testLoader != None:
                     ac, loss = self.test(testLoader, False)
-                    self.writer.add_scalar(f"test/acc{label}", ac, epc)
+                    self.writer.add_scalar(f"test/acc_{self.label}", ac, epc)
                     self._model.train()
             # summary graph
-            self.writer.add_scalar(f"train/loss{label}", sum_loss/count, epc)
-            self.writer.add_scalar(f"train/acc{label}", acc/count, epc)
+            self.writer.add_scalar(f"train/loss_{self.label}", sum_loss/count, epc)
+            self.writer.add_scalar(f"train/acc_{self.label}", acc/count, epc)
             print(epc,"loss", sum_loss/count,"acc", acc/count)
             sum_loss = 0
             acc = 0
@@ -95,12 +92,13 @@ class LevelTask:
         return acc, loss
 
     def save(self):
-        if not os.path.exists(model_path):
-            os.mkdir(model_path)
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
         torch.save(self._model.state_dict(), self._model_file)
         torch.save(self._optim.state_dict(), self._optim_file)
     
-    def load(self):
-        if os.path.exists(model_path):
-            self._model.load_state_dict(torch.load(self._model_file))
-            self._optim.load_state_dict(torch.load(self._optim_file))
+    def load(self, model_file, optim_file):
+        if file_exists(model_file):
+            self._model.load_state_dict(torch.load(model_file))
+        if file_exists(optim_file):
+            self._optim.load_state_dict(torch.load(optim_file))

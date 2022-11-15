@@ -6,11 +6,12 @@ import config
 import ws
 
 def main(epoch:int):
-    _model = model.TaskNet(ws.vocab_size(), lambda word: ws.onehot(ws.VOCAB, word))
+    _model = model.TaskNet(ws.vocab_size(), lambda word: ws.onehot(ws.VOCAB, word), max_len=50)
     _optim = torch.optim.Adam(_model.parameters())
-    task = LevelTask(_model, _optim)
-    tl = get_loader(train=False)
-    task.train(epoch, get_loader(partBetter=True), tl, label="|mini10k")
+    task = LevelTask(_model, _optim, label="mini100")
+    testloader = get_loader(train=False)
+    task.load("./models/mini10k/model.pt", "./models/mini10k/optim.pt")
+    task.train(epoch, get_loader(partBetter=True))
     # task.test(tl)
 
 def test():
@@ -23,5 +24,5 @@ def test():
     LevelTask(m, o).test(get_loader(train=False))
 
 if __name__=="__main__":
-    main(10000)
+    main(100)
     # test()
