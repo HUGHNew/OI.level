@@ -15,22 +15,13 @@ test_file = "assem_test.txt"
 
 class TaskDataset(Dataset):
     def __init__(self, dataPath: str = dataset_path, dataFile: str = assem_file, *,
-                 train: bool = True, embed: bool = False, trainRate: float = 0.8,
+                 train: bool = True, trainRate: float = 0.8,
                  repartition: bool = False, betterPart: bool = False):
-        self.data: list[tuple[int, str | torch.LongTensor]] = []
-        self.embedding = embed
+        self.data: list[tuple[int, str]] = []
         self.isTrain = train
         self.path = dataPath
         self.rawdata = os.path.join(self.path, dataFile)
         self._load_data(repartition, trainRate, betterPart)
-        if self.embedding:
-            def convert(x): return (x[0], sen2vec(x[1], useOneHot=True))
-            for idx,val in enumerate(self.data):
-                result = convert(val)
-                if result[1].shape != torch.Size([193, 50]):
-                    print(val)
-                self.data[idx] = result
-            # apply(self.data, lambda x: (x[0], sen2vec(x[1], useOneHot=True)), False)
 
     def _load_data(self, repart: bool, rate: float, betterPart: bool = False):
         if repart:
@@ -98,7 +89,7 @@ class TaskDataset(Dataset):
             traceback.print_exc()
             os.remove(file)
     
-    def __getitem__(self, index) -> tuple[int, str | torch.LongTensor]:
+    def __getitem__(self, index) -> tuple[int, str]:
         # raw = self.data[index]
         # return (LABELS[raw[0]], raw[1])
         return self.data[index]
@@ -107,5 +98,5 @@ class TaskDataset(Dataset):
         return len(self.data)
 
 
-def get_loader(batch: int = 4, train: bool = True, embed: bool = False, partBetter: bool = False) -> DataLoader:
-    return DataLoader(TaskDataset(train=train, embed=embed, betterPart=partBetter), batch_size=batch, shuffle=True, drop_last=True)
+def get_loader(batch: int = 4, train: bool = True, partBetter: bool = False) -> DataLoader:
+    return DataLoader(TaskDataset(train=train, betterPart=partBetter), batch_size=batch, shuffle=True, drop_last=True)

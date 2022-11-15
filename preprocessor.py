@@ -35,7 +35,7 @@ def assemble_data(text_dict: dict[str, str], cols: list[int],
                         ",".join(
                             [
                                 str(max(int(val), 0))
-                                for idx, val in enumerate(labels[i].split(' ')) 
+                                for idx, val in enumerate(labels[i].split(' ', 2))
                                 if idx in cols
                             ]
                         ),
