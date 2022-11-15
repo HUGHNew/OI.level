@@ -42,14 +42,18 @@ class LevelTask:
                 loss.backward()
                 self._optim.step()
                 sum_loss += loss.item()
-                true_list = output.max(dim=-1)[-1].eq(target).int()
-                acc += true_list.sum().item()
+                # print((output.max(dim=-1)[-1]>0).eq(target>0).int())
+                # raise RuntimeError()
+                # true_list = output.max(dim=-1)[-1].eq(target).int()
+                acc += output.max(dim=-1)[-1].eq(target).int().sum().item()
+                # acc += (output.max(dim=-1)[-1]>0).eq(target>0).int().sum().item()
             if (epc % 16) == 0:
-                self.save()
                 if testLoader != None:
                     ac, loss = self.test(testLoader, False)
                     self.writer.add_scalar(f"test/acc_{self.label}", ac, epc)
                     self._model.train()
+            if (epc % 128) == 0:
+                self.save(str(epc))
             # summary graph
             self.writer.add_scalar(f"train/loss_{self.label}", sum_loss/count, epc)
             self.writer.add_scalar(f"train/acc_{self.label}", acc/count, epc)
@@ -91,11 +95,11 @@ class LevelTask:
             print(f"acc:{acc}, loss:{loss}")
         return acc, loss
 
-    def save(self):
+    def save(self, suffix:str = ""):
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
-        torch.save(self._model.state_dict(), self._model_file)
-        torch.save(self._optim.state_dict(), self._optim_file)
+        torch.save(self._model.state_dict(), self._model_file+suffix)
+        torch.save(self._optim.state_dict(), self._optim_file+suffix)
     
     def load(self, model_file, optim_file):
         if file_exists(model_file):

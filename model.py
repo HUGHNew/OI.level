@@ -30,5 +30,5 @@ class TaskNet(Module):
         output, (hidden, cell) = self.lstm(input)
         # [batch_size, seq_len, hidden_size * num_directions]
         # output = output[:,-1,:]
-        x = self.fc_out(F.relu(output[:, -1, :].clone().detach()))
+        x = self.fc_out(F.relu(output[:, -1, :]))
         return F.log_softmax(x, dim=-1)
